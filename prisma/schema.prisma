@@ -1,0 +1,97 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// User model for authentication
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String    // hashed password
+  name      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  sessions  Session[]
+}
+
+// Session model for authentication
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Ingredient model - stores base nutritional info per 100g
+model Ingredient {
+  id                String             @id @default(cuid())
+  name              String             @unique
+  protein           Float              // grams per 100g
+  fat               Float              // grams per 100g
+  carbs             Float              // grams per 100g
+  kcal              Float              // kcal per 100g
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  recipeIngredients RecipeIngredient[]
+}
+
+// Recipe model - collection of ingredients with optional cooked weight
+model Recipe {
+  id           String             @id @default(cuid())
+  name         String             @unique
+  description  String?
+  cookedWeight Float?             // total cooked weight in grams (optional)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  ingredients  RecipeIngredient[]
+  meals        Meal[]
+}
+
+// Junction table - links recipes to ingredients with raw weight
+model RecipeIngredient {
+  id           String     @id @default(cuid())
+  recipeId     String
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  weight       Float      // raw weight in grams
+  createdAt    DateTime   @default(now())
+
+  @@unique([recipeId, ingredientId])
+  @@index([recipeId])
+  @@index([ingredientId])
+}
+
+// Meal model - a recipe with portion size in a day plan
+model Meal {
+  id          String   @id @default(cuid())
+  recipeId    String
+  recipe      Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  portionSize Float    // grams of cooked/prepared food to eat
+  dayPlanId   String
+  dayPlan     DayPlan  @relation(fields: [dayPlanId], references: [id], onDelete: Cascade)
+  order       Int      @default(0) // order of meal in the day plan
+  createdAt   DateTime @default(now())
+
+  @@index([recipeId])
+  @@index([dayPlanId])
+}
+
+// DayPlan model - named meal plan for a day (no specific date)
+model DayPlan {
+  id          String   @id @default(cuid())
+  name        String   @unique // e.g., "High Protein Day", "Waffle + Chicken + Potato"
+  description String?
+  meals       Meal[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
