@@ -187,11 +187,17 @@ export async function duplicateDayPlan(id: string) {
         name: `${dayPlan.name} (Copy)`,
         description: dayPlan.description,
         meals: {
-          create: dayPlan.meals.map((meal) => ({
-            recipeId: meal.recipeId,
-            portionSize: meal.portionSize,
-            order: meal.order,
-          })),
+          create: dayPlan.meals.map(
+            (meal: {
+              recipeId: string;
+              portionSize: number;
+              order: number;
+            }) => ({
+              recipeId: meal.recipeId,
+              portionSize: meal.portionSize,
+              order: meal.order,
+            }),
+          ),
         },
       },
     });
